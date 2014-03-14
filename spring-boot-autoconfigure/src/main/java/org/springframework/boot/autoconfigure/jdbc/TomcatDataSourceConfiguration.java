@@ -16,11 +16,18 @@
 
 package org.springframework.boot.autoconfigure.jdbc;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.sql.DataSource;
 
+import org.apache.tomcat.jdbc.pool.PoolConfiguration;
+import org.apache.tomcat.jdbc.pool.PoolProperties;
+import org.springframework.beans.factory.BeanCreationException;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.boot.context.properties.ConfigurationProxy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 
 /**
  * Configuration for a Tomcat database pool. The Tomcat pool provides superior performance
@@ -30,64 +37,48 @@ import org.springframework.context.annotation.Configuration;
  * @see DataSourceAutoConfiguration
  */
 @Configuration
-public class TomcatDataSourceConfiguration extends AbstractDataSourceConfiguration {
+public class TomcatDataSourceConfiguration extends AbstractDataSourceConfiguration
+		implements ConfigurationProxy, InitializingBean {
 
-	private String jdbcInterceptors;
-	private long validationInterval = 30000;
-	private org.apache.tomcat.jdbc.pool.DataSource pool;
+	private org.apache.tomcat.jdbc.pool.DataSource pool = new org.apache.tomcat.jdbc.pool.DataSource();
 
 	@Bean(destroyMethod = "close")
 	public DataSource dataSource() {
-		this.pool = new org.apache.tomcat.jdbc.pool.DataSource();
-		this.pool.setDriverClassName(getDriverClassName());
-		this.pool.setUrl(getUrl());
-		if (getUsername() != null) {
-			this.pool.setUsername(getUsername());
-		}
-		if (getPassword() != null) {
-			this.pool.setPassword(getPassword());
-		}
-		this.pool.setInitialSize(getInitialSize());
-		this.pool.setMaxActive(getMaxActive());
-		this.pool.setMaxIdle(getMaxIdle());
-		this.pool.setMinIdle(getMinIdle());
-		this.pool.setTestOnBorrow(isTestOnBorrow());
-		this.pool.setTestOnReturn(isTestOnReturn());
-		this.pool.setTestWhileIdle(isTestWhileIdle());
-		this.pool.setTimeBetweenEvictionRunsMillis(getTimeBetweenEvictionRunsMillis());
-		this.pool.setMinEvictableIdleTimeMillis(getMinEvictableIdleTimeMillis());
-		this.pool.setValidationQuery(getValidationQuery());
-		this.pool.setValidationInterval(this.validationInterval);
-		this.pool.setMaxWait(getMaxWaitMillis());
-		if (jdbcInterceptors != null) {
-			this.pool.setJdbcInterceptors(this.jdbcInterceptors);
-		}
 		return this.pool;
 	}
 
-	@PreDestroy
-	public void close() {
-		if (this.pool != null) {
-			this.pool.close();
-		}
+	@Override
+	public Object getTargetConfigurationBean() {
+		return this.pool.getPoolProperties();
 	}
 
 	@Override
-	protected int getDefaultTimeBetweenEvictionRunsMillis() {
-		return 5000;
+	protected void setPassword(String password) {
+		this.pool.setPassword(password);
 	}
 
 	@Override
-	protected int getDefaultMinEvictableIdleTimeMillis() {
-		return 60000;
+	protected void setUsername(String sa) {
+		this.pool.setUsername(sa);
 	}
 
 	@Override
-	protected int getDefaultMaxWaitMillis() {
-		return 30000;
+	protected void setUrl(String url) {
+		this.pool.setUrl(url);
 	}
 
-	public void setJdbcInterceptors(String jdbcInterceptors) { this.jdbcInterceptors = jdbcInterceptors; }
+	@Override
+	protected String getUrl() {
+		return this.pool.getUrl();
+	}
 
-	public void setValidationInterval(long validationInterval) { this.validationInterval = validationInterval; }
+	@Override
+	protected void setDriverClassName(String driverClassName) {
+		this.pool.setDriverClassName(driverClassName);
+	}
+
+	@Override
+	protected String getDriverClassName() {
+		return this.pool.getDriverClassName();
+	}
 }

@@ -33,39 +33,9 @@ import org.springframework.util.StringUtils;
 public abstract class AbstractDataSourceConfiguration implements BeanClassLoaderAware,
 		InitializingBean {
 
-	private String driverClassName;
-
-	private String url;
-
-	private String username;
-
-	private String password;
-
-	private int maxActive = 100;
-
-	private int maxIdle = 8;
-
-	private int minIdle = 8;
-
-	private int initialSize = 10;
-
-	private String validationQuery;
-
-	private boolean testOnBorrow = false;
-
-	private boolean testOnReturn = false;
-
-	private boolean testWhileIdle = false;
-
-	private int timeBetweenEvictionRunsMillis = getDefaultTimeBetweenEvictionRunsMillis();
-
-	private int minEvictableIdleTimeMillis = getDefaultMinEvictableIdleTimeMillis();
-
-	private int maxWaitMillis = getDefaultMaxWaitMillis();
-
 	private ClassLoader classLoader;
 
-	private EmbeddedDatabaseConnection embeddedDatabaseConnection = EmbeddedDatabaseConnection.NONE;
+	protected EmbeddedDatabaseConnection embeddedDatabaseConnection = EmbeddedDatabaseConnection.NONE;
 
 	@Override
 	public void setBeanClassLoader(ClassLoader classLoader) {
@@ -74,15 +44,8 @@ public abstract class AbstractDataSourceConfiguration implements BeanClassLoader
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		this.embeddedDatabaseConnection = EmbeddedDatabaseConnection
-				.get(this.classLoader);
-	}
-
-	protected String getDriverClassName() {
-		if (StringUtils.hasText(this.driverClassName)) {
-			return this.driverClassName;
-		}
-		String driverClassName = this.embeddedDatabaseConnection.getDriverClassName();
+		this.embeddedDatabaseConnection = EmbeddedDatabaseConnection.get(this.classLoader);
+		String driverClassName = resolveDriverClassName(getDriverClassName());
 		if (!StringUtils.hasText(driverClassName)) {
 			throw new BeanCreationException(
 					"Cannot determine embedded database driver class for database type "
@@ -90,143 +53,45 @@ public abstract class AbstractDataSourceConfiguration implements BeanClassLoader
 							+ ". If you want an embedded "
 							+ "database please put a supported one on the classpath.");
 		}
-		return driverClassName;
-	}
-
-	protected String getUrl() {
-		if (StringUtils.hasText(this.url)) {
-			return this.url;
+		if (!driverClassName.equals(getDriverClassName())) {
+			setDriverClassName(driverClassName);
 		}
-		String url = this.embeddedDatabaseConnection.getUrl();
+		String url = resolveUrl(getUrl());
 		if (!StringUtils.hasText(url)) {
 			throw new BeanCreationException(
 					"Cannot determine embedded database url for database type "
 							+ this.embeddedDatabaseConnection
 							+ ". If you want an embedded "
-							+ "database please put a supported on on the classpath.");
+							+ "database please put a supported one on the classpath.");
 		}
-		return url;
-	}
-
-	protected String getUsername() {
-		if (StringUtils.hasText(this.username)) {
-			return this.username;
+		if (!url.equals(getUrl())) {
+			setUrl(url);
 		}
-		if (EmbeddedDatabaseConnection.isEmbedded(this.driverClassName)) {
-			return "sa";
+		if (EmbeddedDatabaseConnection.isEmbedded(driverClassName)) {
+			setUsername("sa");
+			setPassword("");
 		}
-		return null;
+
 	}
 
-	protected String getPassword() {
-		if (StringUtils.hasText(this.password)) {
-			return this.password;
+	protected abstract void setPassword(String password);
+	protected abstract void setUsername(String sa);
+	protected abstract void setUrl(String url);
+	protected abstract String getUrl();
+	protected abstract void setDriverClassName(String driverClassName);
+	protected abstract String getDriverClassName();
+
+	protected String resolveDriverClassName(String driverClassName) {
+		if (StringUtils.hasText(driverClassName)) {
+			return driverClassName;
 		}
-		if (EmbeddedDatabaseConnection.isEmbedded(this.driverClassName)) {
-			return "";
+		return this.embeddedDatabaseConnection.getDriverClassName();
+	}
+
+	protected String resolveUrl(String url) {
+		if (StringUtils.hasText(url)) {
+			return url;
 		}
-		return null;
+		return this.embeddedDatabaseConnection.getUrl();
 	}
-
-	public void setDriverClassName(String driverClassName) {
-		this.driverClassName = driverClassName;
-	}
-
-	public void setInitialSize(int initialSize) {
-		this.initialSize = initialSize;
-	}
-
-	public void setUrl(String url) {
-		this.url = url;
-	}
-
-	public void setUsername(String username) {
-		this.username = username;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	public void setMaxActive(int maxActive) {
-		this.maxActive = maxActive;
-	}
-
-	public void setMaxIdle(int maxIdle) {
-		this.maxIdle = maxIdle;
-	}
-
-	public void setMinIdle(int minIdle) {
-		this.minIdle = minIdle;
-	}
-
-	public void setValidationQuery(String validationQuery) {
-		this.validationQuery = validationQuery;
-	}
-
-	public void setTestOnBorrow(boolean testOnBorrow) {
-		this.testOnBorrow = testOnBorrow;
-	}
-
-	public void setTestOnReturn(boolean testOnReturn) {
-		this.testOnReturn = testOnReturn;
-	}
-
-	public void setTestWhileIdle(boolean testWhileIdle) {
-		this.testWhileIdle = testWhileIdle;
-	}
-
-	public void setTimeBetweenEvictionRunsMillis(int timeBetweenEvictionRunsMillis) {
-		this.timeBetweenEvictionRunsMillis = timeBetweenEvictionRunsMillis;
-	}
-
-	public void setMinEvictableIdleTimeMillis(int minEvictableIdleTimeMillis) {
-		this.minEvictableIdleTimeMillis = minEvictableIdleTimeMillis;
-	}
-
-	public void setMaxWait(int maxWaitMillis) { this.maxWaitMillis = maxWaitMillis; }
-
-	public int getInitialSize() {
-		return this.initialSize;
-	}
-
-	protected int getMaxActive() {
-		return this.maxActive;
-	}
-
-	protected int getMaxIdle() {
-		return this.maxIdle;
-	}
-
-	protected int getMinIdle() {
-		return this.minIdle;
-	}
-
-	protected String getValidationQuery() {
-		return this.validationQuery;
-	}
-
-	protected boolean isTestOnBorrow() {
-		return this.testOnBorrow;
-	}
-
-	protected boolean isTestOnReturn() {
-		return this.testOnReturn;
-	}
-
-	protected boolean isTestWhileIdle() {
-		return this.testWhileIdle;
-	}
-
-	protected int getTimeBetweenEvictionRunsMillis() { return this.timeBetweenEvictionRunsMillis; }
-
-	protected int getMinEvictableIdleTimeMillis() { return this.minEvictableIdleTimeMillis; }
-
-	protected int getMaxWaitMillis() { return this.maxWaitMillis; }
-
-	protected abstract int getDefaultTimeBetweenEvictionRunsMillis();
-
-	protected abstract int getDefaultMinEvictableIdleTimeMillis();
-
-	protected abstract int getDefaultMaxWaitMillis();
 }

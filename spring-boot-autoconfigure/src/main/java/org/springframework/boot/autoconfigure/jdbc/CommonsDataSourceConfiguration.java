@@ -25,9 +25,12 @@ import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.pool.impl.GenericObjectPool;
+import org.springframework.beans.factory.BeanCreationException;
+import org.springframework.boot.context.properties.ConfigurationProxy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.util.StringUtils;
 
 /**
  * Configuration for a Commons DBCP database pool. The DBCP pool is popular but not
@@ -37,68 +40,52 @@ import org.springframework.dao.DataAccessResourceFailureException;
  * @see DataSourceAutoConfiguration
  */
 @Configuration
-public class CommonsDataSourceConfiguration extends AbstractDataSourceConfiguration {
+public class CommonsDataSourceConfiguration extends AbstractDataSourceConfiguration implements ConfigurationProxy{
 
 	private static Log logger = LogFactory.getLog(CommonsDataSourceConfiguration.class);
 
-	private BasicDataSource pool;
-
-	public CommonsDataSourceConfiguration() {
-		// Ensure to set the correct default value for Commons DBCP
-		setInitialSize(0);
-	}
+	private BasicDataSource pool = new BasicDataSource();
 
 	@Bean(destroyMethod = "close")
 	public DataSource dataSource() {
 		logger.info("Hint: using Commons DBCP BasicDataSource. It's going to work, "
 				+ "but the Tomcat DataSource is more reliable.");
-		this.pool = new BasicDataSource();
-		this.pool.setDriverClassName(getDriverClassName());
-		this.pool.setUrl(getUrl());
-		if (getUsername() != null) {
-			this.pool.setUsername(getUsername());
-		}
-		if (getPassword() != null) {
-			this.pool.setPassword(getPassword());
-		}
-		this.pool.setInitialSize(getInitialSize());
-		this.pool.setMaxActive(getMaxActive());
-		this.pool.setMaxIdle(getMaxIdle());
-		this.pool.setMinIdle(getMinIdle());
-		this.pool.setTestOnBorrow(isTestOnBorrow());
-		this.pool.setTestOnReturn(isTestOnReturn());
-		this.pool.setTestWhileIdle(isTestWhileIdle());
-		this.pool.setTimeBetweenEvictionRunsMillis(getTimeBetweenEvictionRunsMillis());
-		this.pool.setMinEvictableIdleTimeMillis(getMinEvictableIdleTimeMillis());
-		this.pool.setValidationQuery(getValidationQuery());
-		this.pool.setMaxWait(getMaxWaitMillis());
 		return this.pool;
 	}
 
-	@PreDestroy
-	public void close() {
-		if (this.pool != null) {
-			try {
-				this.pool.close();
-			} catch (SQLException ex) {
-				throw new DataAccessResourceFailureException(
-						"Could not close data source", ex);
-			}
-		}
+	@Override
+	public Object getTargetConfigurationBean() {
+		return this.pool;
 	}
 
 	@Override
-	protected int getDefaultTimeBetweenEvictionRunsMillis() {
-		return (int) GenericObjectPool.DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS;
+	protected void setPassword(String password) {
+		this.pool.setPassword(password);
 	}
 
 	@Override
-	protected int getDefaultMinEvictableIdleTimeMillis() {
-		return (int) GenericObjectPool.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS;
+	protected void setUsername(String sa) {
+		this.pool.setUsername(sa);
 	}
 
 	@Override
-	protected int getDefaultMaxWaitMillis() {
-		return (int) GenericObjectPool.DEFAULT_MAX_WAIT;
+	protected void setUrl(String url) {
+		this.pool.setUrl(url);
 	}
+
+	@Override
+	protected String getUrl() {
+		return this.pool.getUrl();
+	}
+
+	@Override
+	protected void setDriverClassName(String driverClassName) {
+		this.pool.setDriverClassName(driverClassName);
+	}
+
+	@Override
+	protected String getDriverClassName() {
+		return this.pool.getDriverClassName();
+	}
+
 }

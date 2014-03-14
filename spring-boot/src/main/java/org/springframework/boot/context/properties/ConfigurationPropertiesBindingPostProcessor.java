@@ -290,6 +290,9 @@ public class ConfigurationPropertiesBindingPostProcessor implements BeanPostProc
 			ConfigurationProperties annotation) {
 		Object target = (bean instanceof ConfigurationPropertiesHolder ? ((ConfigurationPropertiesHolder) bean)
 				.getTarget() : bean);
+		if (target instanceof ConfigurationProxy) {
+			target = ((ConfigurationProxy) target).getTargetConfigurationBean();
+		}
 		PropertiesConfigurationFactory<Object> factory = new PropertiesConfigurationFactory<Object>(
 				target);
 		if (annotation != null && annotation.path().length != 0) {

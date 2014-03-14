@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.springframework.beans.BeansException;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationProxy;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -98,10 +99,10 @@ public class ConfigurationPropertiesReportEndpoint extends
 		for (Map.Entry<String, Object> entry : beans.entrySet()) {
 			String beanName = entry.getKey();
 			Object bean = entry.getValue();
-
 			Map<String, Object> root = new HashMap<String, Object>();
 			root.put("prefix", extractPrefix(bean));
-			root.put("properties", sanitize(mapper.convertValue(bean, Map.class)));
+			Object resolvedBean = resolveBean(bean);
+			root.put("properties", sanitize(mapper.convertValue(resolvedBean, Map.class)));
 			result.put(beanName, root);
 		}
 
@@ -110,6 +111,13 @@ public class ConfigurationPropertiesReportEndpoint extends
 		}
 
 		return result;
+	}
+
+	private Object resolveBean(Object bean) {
+		if (bean instanceof ConfigurationProxy) {
+			return ((ConfigurationProxy) bean).getTargetConfigurationBean();
+		}
+		return bean;
 	}
 
 	/**
